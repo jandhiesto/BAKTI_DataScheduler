@@ -1,0 +1,69 @@
+# ==========================================
+# 1. PYTHON & BACKEND SCHEDULER
+# ==========================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.venv/
+.env/
+
+# Database SQLite (SANGAT PENTING!)
+*.db
+*.sqlite
+*.sqlite3
+backend-scheduler/scheduler.db
+backend-scheduler/app/scheduler.db
+
+# Environment Variables (Data Sensitif)
+.env
+
+# Pytest / Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# ==========================================
+# 2. NODE.JS (FRONTEND REACT & MOCK APIS)
+# ==========================================
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Production Build Output (React Vite)
+dist/
+build/
+out/
+
+# Logs Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==========================================
+# 3. OS & IDE (VS CODE, MAC, WINDOWS)
+# ==========================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code / IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
