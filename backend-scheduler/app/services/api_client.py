@@ -2,7 +2,7 @@ import httpx
 import logging
 
 # Setup logging sederhana untuk melihat aktivitas di terminal
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def fetch_source_data(url: str, method: str = "GET", headers: dict = None) -> dict:
