@@ -1,0 +1,18 @@
+{
+  "pegawai_sumber": [
+    {
+      "id_record": 1,
+      "nama_karyawan": "John Doe",
+      "kelas_karyawan": "Informatika",
+      "jabatan": "System Analyst",
+      "data_internal_rahasia": "jangan_dikirim_ke_kemenkeu"
+    },
+    {
+      "id_record": 2,
+      "nama_karyawan": "Jane Smith",
+      "kelas_karyawan": "Sistem Informasi",
+      "jabatan": "Data Engineer",
+      "data_internal_rahasia": "hiraukan_saja"
+    }
+  ]
+}
