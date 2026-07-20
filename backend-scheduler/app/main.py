@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import scheduler_router
 import logging
 
 logging.basicConfig(
@@ -51,6 +52,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(scheduler_router.router)
 
 @app.get("/")
 def read_root():
