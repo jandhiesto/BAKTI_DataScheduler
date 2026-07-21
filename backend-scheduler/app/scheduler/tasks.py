@@ -67,6 +67,57 @@ def execute_sync_job(scheduler_id: int):
         )
         db.add(new_log)
         db.commit()
-        db.close()
-        
         logger.info(f"Selesai! Status akhir: {status} untuk scheduler: {config.name}")
+        db.close()
+
+def execute_passive_sync_job(scheduler_id: int):
+    """
+    Eksekusi untuk Passive Scheduler yang terjadwal.
+    """
+    db: Session = SessionLocal()
+    from app.models.passive_model import PassiveScheduler
+    
+    config = db.query(PassiveScheduler).filter(PassiveScheduler.id == scheduler_id).first()
+    
+    if not config or config.status != "terjadwal":
+        logger.warning(f"Job dibatalkan. Passive Scheduler ID {scheduler_id} tidak ditemukan atau tidak terjadwal.")
+        db.close()
+        return
+
+    status = "berhasil"
+    error_msg = None
+    records_count = len(config.payload)
+
+    try:
+        logger.info(f"Memulai tugas sinkronisasi pasif untuk: {config.app_name}")
+        target_headers_dict = {h["key"]: h["value"] for h in config.target_headers if h.get("key", "").strip()}
+        
+        # Langsung dorong data karena sudah ada di payload
+        push_destination_data(url=config.target, payload=config.payload, headers=target_headers_dict)
+        
+    except Exception as e:
+        status = "gagal"
+        error_msg = str(e)
+        logger.error(f"Gagal mengeksekusi passive scheduler {config.app_name}: {error_msg}")
+
+    finally:
+        new_log = ExecutionLog(
+            name=config.app_name,
+            source=config.source_url,
+            target=config.target,
+            status=status,
+            trigger="Scheduler Pasif",
+            message=error_msg or f"[INFO] Berhasil mengirim {records_count} data yang diterima secara pasif ke target.",
+            records_processed=records_count if status == "berhasil" else 0
+        )
+        db.add(new_log)
+        
+        # Menghapus job pasif setelah berhasil atau gagal? Requirement: "hanya berlaku sekali pengiriman saja" jika "sudah terkirim".
+        # Asumsikan jika gagal, kita tetap hapus (karena payload pasif itu volatile, atau kita pertahankan untuk dicoba lagi?). 
+        # Kita hapus setelah diproses untuk menjaga konsistensi One-time webhook queue.
+        from app.scheduler.engine import remove_passive_job
+        db.delete(config)
+        db.commit()
+        logger.info(f"Selesai! Status akhir pasif: {status} untuk: {config.app_name}")
+        db.close()
+        remove_passive_job(scheduler_id)

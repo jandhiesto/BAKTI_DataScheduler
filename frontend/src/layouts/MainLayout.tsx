@@ -6,7 +6,8 @@ import logoBakti from '../assets/baktilogo.jpg';
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Input Data', path: '/input-data', icon: Database },
-  { name: 'Scheduler', path: '/scheduler', icon: CalendarClock },
+  { name: 'Scheduler Aktif', path: '/scheduler', icon: CalendarClock },
+  { name: 'Scheduler Pasif', path: '/passive-scheduler', icon: CalendarClock },
   { name: 'Log Riwayat', path: '/log-history', icon: History },
 ];
 

@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import InputData from './pages/InputData';
 import Scheduler from './pages/Scheduler';
 import LogHistory from './pages/LogHistory';
+import PassiveScheduler from './pages/PassiveScheduler';
+import PassiveSchedulerDetail from './pages/PassiveSchedulerDetail';
 
 function App() {
   return (
@@ -16,6 +18,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/input-data" element={<InputData />} />
           <Route path="/scheduler" element={<Scheduler />} />
+          <Route path="/passive-scheduler" element={<PassiveScheduler />} />
+          <Route path="/passive-scheduler/edit/:id" element={<PassiveSchedulerDetail mode="edit" />} />
+          <Route path="/passive-scheduler/view/:id" element={<PassiveSchedulerDetail mode="view" />} />
           <Route path="/log-history" element={<LogHistory />} />
         </Route>
         

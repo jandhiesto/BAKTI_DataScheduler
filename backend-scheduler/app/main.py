@@ -9,7 +9,7 @@ logging.basicConfig(
     format="%(levelname)-9s [%(name)s] %(message)s"
 )
 from app.core.database import engine, Base, SessionLocal
-from app.models import scheduler_model, log_model
+from app.models import scheduler_model, log_model, passive_model
 
 # Import modul engine penjadwalan yang baru saja kita rakit
 from app.scheduler.engine import start_scheduler, stop_scheduler, load_active_jobs
@@ -28,6 +28,13 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         load_active_jobs(db)
+    
+        # Load passive schedulers
+        from app.models.passive_model import PassiveScheduler
+        from app.scheduler.engine import add_or_update_passive_job
+        passive_schedulers = db.query(PassiveScheduler).filter(PassiveScheduler.status == "terjadwal").all()
+        for s in passive_schedulers:
+            add_or_update_passive_job(s)
     finally:
         db.close()
         
@@ -54,9 +61,10 @@ app.add_middleware(
 )
 
 app.include_router(scheduler_router.router)
-from app.routers import api, dummy_router
+from app.routers import api, dummy_router, passive_router
 app.include_router(api.router)
 app.include_router(dummy_router.router)
+app.include_router(passive_router.router)
 
 @app.get("/")
 def read_root():

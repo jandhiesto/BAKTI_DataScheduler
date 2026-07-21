@@ -72,3 +72,27 @@ def load_active_jobs(db):
     
     for config in active_configs:
         add_or_update_job(config)
+
+def add_or_update_passive_job(passive_scheduler):
+    if passive_scheduler.status != "terjadwal":
+        remove_passive_job(passive_scheduler.id)
+        return
+        
+    try:
+        from app.scheduler.tasks import execute_passive_sync_job
+        scheduler.add_job(
+            func=execute_passive_sync_job,
+            trigger=_create_cron_trigger(passive_scheduler.days, passive_scheduler.time),
+            id=f"passive_sync_job_{passive_scheduler.id}",
+            args=[passive_scheduler.id],
+            replace_existing=True
+        )
+        logger.info(f"Berhasil mendaftarkan jadwal pasif: ID {passive_scheduler.id} [{passive_scheduler.days} pada {passive_scheduler.time}]")
+    except Exception as e:
+        logger.error(f"Gagal mendaftarkan jadwal pasif {passive_scheduler.id}: {str(e)}")
+
+def remove_passive_job(passive_id: int):
+    job_id = f"passive_sync_job_{passive_id}"
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+        logger.info(f"Berhasil menghapus jadwal pasif dengan ID: {passive_id}")
