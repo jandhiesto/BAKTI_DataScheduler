@@ -159,7 +159,7 @@ export default function InputData() {
     XLSX.writeFile(wb, "export_data.xlsx");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validasi Tipe Data sebelum submit
     for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
       for (let colIndex = 0; colIndex < columns.length; colIndex++) {
@@ -209,17 +209,31 @@ export default function InputData() {
       payload
     };
 
-    console.log("=== PENGIRIMAN DATA (SIMULASI) ===");
-    console.log(JSON.stringify(requestData, null, 2));
-    alert("Data berhasil dikonversi ke JSON dan dicetak di Console!");
-    
-    // Kosongkan form dan tabel setelah berhasil
-    setColumns([]);
-    setColWidths([]);
-    setColTypes([]);
-    setData([]);
-    setTargetUrl('');
-    setHeaders([]);
+    try {
+      const res = await fetch('http://localhost:8000/api/manual-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+      
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(responseData.detail || 'Terjadi kesalahan saat mengirim data');
+      }
+
+      alert("Data berhasil dikirim ke target!");
+      
+      // Kosongkan form dan tabel setelah berhasil
+      setColumns([]);
+      setColWidths([]);
+      setColTypes([]);
+      setData([]);
+      setTargetUrl('');
+      setHeaders([]);
+    } catch (err: any) {
+      alert(`Gagal mengirim data: ${err.message}`);
+    }
   };
 
   return (

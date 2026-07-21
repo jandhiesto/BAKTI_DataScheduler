@@ -37,14 +37,34 @@ def get_scheduler(scheduler_id: int, db: Session = Depends(get_db)):
 # 3. CREATE: Membuat jadwal sinkronisasi baru
 @router.post("/", response_model=SchedulerResponse, status_code=status.HTTP_201_CREATED)
 def create_scheduler(scheduler_in: SchedulerCreate, db: Session = Depends(get_db)):
-    # Mengubah Pydantic model menjadi SQLAlchemy model menggunakan model_dump()
     new_scheduler = SchedulerConfig(**scheduler_in.model_dump())
     db.add(new_scheduler)
     db.commit()
     db.refresh(new_scheduler)
+    
+    from app.scheduler.engine import add_or_update_job
+    add_or_update_job(new_scheduler)
     return new_scheduler
 
-# 4. DELETE: Menghapus jadwal
+# 4. UPDATE: Mengedit jadwal sinkronisasi
+@router.put("/{scheduler_id}", response_model=SchedulerResponse)
+def update_scheduler(scheduler_id: int, scheduler_in: SchedulerUpdate, db: Session = Depends(get_db)):
+    scheduler = db.query(SchedulerConfig).filter(SchedulerConfig.id == scheduler_id).first()
+    if not scheduler:
+        raise HTTPException(status_code=404, detail="Scheduler tidak ditemukan")
+    
+    update_data = scheduler_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(scheduler, key, value)
+        
+    db.commit()
+    db.refresh(scheduler)
+    
+    from app.scheduler.engine import add_or_update_job
+    add_or_update_job(scheduler)
+    return scheduler
+
+# 5. DELETE: Menghapus jadwal
 @router.delete("/{scheduler_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_scheduler(scheduler_id: int, db: Session = Depends(get_db)):
     scheduler = db.query(SchedulerConfig).filter(SchedulerConfig.id == scheduler_id).first()
@@ -53,4 +73,7 @@ def delete_scheduler(scheduler_id: int, db: Session = Depends(get_db)):
     
     db.delete(scheduler)
     db.commit()
+    
+    from app.scheduler.engine import remove_job
+    remove_job(scheduler_id)
     return None

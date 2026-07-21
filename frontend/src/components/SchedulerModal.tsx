@@ -8,7 +8,8 @@ interface SchedulerModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: SchedulerMode;
-  initialData?: any; // We'll type this properly later
+  initialData?: any;
+  onSave?: () => void;
 }
 
 const DAYS = [
@@ -26,7 +27,7 @@ interface HeaderField {
   value: string;
 }
 
-export default function SchedulerModal({ isOpen, onClose, mode, initialData }: SchedulerModalProps) {
+export default function SchedulerModal({ isOpen, onClose, mode, initialData, onSave }: SchedulerModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -47,9 +48,9 @@ export default function SchedulerModal({ isOpen, onClose, mode, initialData }: S
         name: initialData.name || '',
         description: initialData.description || '',
         sourceUrl: initialData.source || '',
-        sourceHeaders: initialData.sourceHeaders || [],
+        sourceHeaders: initialData.source_headers || [],
         targetUrl: initialData.target || '',
-        targetHeaders: initialData.targetHeaders || [],
+        targetHeaders: initialData.target_headers || [],
         days: initialData.days || ['mon', 'tue', 'wed', 'thu', 'fri'],
         time: initialData.time || '09:00',
       });
@@ -121,16 +122,69 @@ export default function SchedulerModal({ isOpen, onClose, mode, initialData }: S
     });
   };
 
-  const handleCheckConnection = () => {
+  const handleCheckConnection = async () => {
     if (!formData.sourceUrl || !formData.targetUrl) {
       alert("Harap isi URL Sumber dan URL Tujuan terlebih dahulu.");
       return;
     }
     setConnectionStatus('testing');
-    // Simulate connection check
-    setTimeout(() => {
-      setConnectionStatus('success'); 
-    }, 1500);
+    
+    try {
+      const payload = {
+        url: formData.sourceUrl,
+        headers: formData.sourceHeaders
+      };
+      
+      const res = await fetch('http://localhost:8000/api/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) throw new Error('Koneksi gagal');
+      
+      setConnectionStatus('success');
+    } catch (err) {
+      console.error(err);
+      setConnectionStatus('failed');
+      alert('Koneksi ke URL Sumber gagal.');
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        source: formData.sourceUrl,
+        source_headers: formData.sourceHeaders,
+        target: formData.targetUrl,
+        target_headers: formData.targetHeaders,
+        days: formData.days,
+        time: formData.time,
+        status: initialData?.status || 'aktif'
+      };
+
+      const url = mode === 'add' 
+        ? 'http://localhost:8000/api/schedulers/'
+        : `http://localhost:8000/api/schedulers/${initialData.id}`;
+      
+      const method = mode === 'add' ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) throw new Error('API request failed');
+      
+      if (onSave) onSave();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat menyimpan data');
+    }
   };
 
   return (
@@ -399,6 +453,7 @@ export default function SchedulerModal({ isOpen, onClose, mode, initialData }: S
             
             {!isReadOnly && (
               <button
+                onClick={handleSubmit}
                 className="px-6 py-2 bg-navy-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-navy-700 transition-colors shadow-sm hover:cursor-pointer"
               >
                 {submitText}

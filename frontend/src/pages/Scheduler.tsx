@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Eye, Edit2, Trash2, Filter } from 'lucide-react';
 import clsx from 'clsx';
 import SchedulerModal, { type SchedulerMode } from '../components/SchedulerModal';
 import FilterDropdown from '../components/FilterDropdown';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
-const dummySchedulers = [
-  { id: 1, name: 'Sync Employee Data', source: 'https://api.hr.system/employees', target: 'https://api.bakti.go.id/users', status: 'aktif' },
-  { id: 2, name: 'Pull Monthly Report', source: 'https://api.finance/reports', target: 'https://api.bakti.go.id/reports', status: 'dijeda' },
-];
+import type { FilterState } from '../components/FilterDropdown';
 
 export default function Scheduler() {
+  const [schedulers, setSchedulers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterConfig, setFilterConfig] = useState<FilterState | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   
@@ -21,6 +21,20 @@ export default function Scheduler() {
 
   // Delete Modal state
   const [schedulerToDelete, setSchedulerToDelete] = useState<any>(null);
+
+  const fetchSchedulers = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/schedulers/');
+      const data = await res.json();
+      setSchedulers(data);
+    } catch (err) {
+      console.error('Failed to fetch schedulers', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchedulers();
+  }, []);
 
   const openModal = (mode: SchedulerMode, scheduler?: any) => {
     setModalMode(mode);
@@ -34,11 +48,42 @@ export default function Scheduler() {
     setActiveDropdown(null);
   };
 
-  const handleDelete = () => {
-    console.log('Deleting scheduler:', schedulerToDelete?.id);
-    // TODO: Connect to API
-    setSchedulerToDelete(null);
+  const handleDelete = async () => {
+    if (!schedulerToDelete) return;
+    try {
+      await fetch(`http://localhost:8000/api/schedulers/${schedulerToDelete.id}`, {
+        method: 'DELETE'
+      });
+      fetchSchedulers(); // Refresh
+    } catch (err) {
+      console.error('Failed to delete', err);
+    } finally {
+      setSchedulerToDelete(null);
+    }
   };
+
+  const filteredSchedulers = schedulers.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    let matchesFilter = true;
+    if (filterConfig) {
+      if (filterConfig.statuses.length > 0) {
+        matchesFilter = matchesFilter && filterConfig.statuses.includes(s.status);
+      }
+      if (filterConfig.year) {
+        const utcDateStr = s.created_at.endsWith('Z') ? s.created_at : `${s.created_at}Z`;
+        const date = new Date(utcDateStr);
+        matchesFilter = matchesFilter && (date.getFullYear().toString() === filterConfig.year);
+      }
+      if (filterConfig.month) {
+        const utcDateStr = s.created_at.endsWith('Z') ? s.created_at : `${s.created_at}Z`;
+        const date = new Date(utcDateStr);
+        matchesFilter = matchesFilter && ((date.getMonth() + 1).toString() === filterConfig.month);
+      }
+    }
+
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="space-y-6">
@@ -50,6 +95,8 @@ export default function Scheduler() {
           </div>
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-navy-500 focus:border-navy-500 sm:text-sm"
             placeholder="Cari scheduler..."
           />
@@ -68,7 +115,7 @@ export default function Scheduler() {
               isOpen={isFilterOpen}
               onClose={() => setIsFilterOpen(false)}
               type="scheduler"
-              onApply={(f) => console.log('Apply', f)}
+              onApply={(f) => setFilterConfig(f)}
             />
           </div>
           <button 
@@ -105,7 +152,7 @@ export default function Scheduler() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {dummySchedulers.map((scheduler) => (
+              {filteredSchedulers.map((scheduler) => (
                 <tr key={scheduler.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                     {scheduler.name}
@@ -174,15 +221,16 @@ export default function Scheduler() {
         </div>
       </div>
 
+      {/* Modals */}
       <SchedulerModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
         mode={modalMode}
         initialData={selectedScheduler}
+        onSave={fetchSchedulers}
       />
-
       <ConfirmDeleteModal 
-        isOpen={schedulerToDelete !== null}
+        isOpen={!!schedulerToDelete}
         onClose={() => setSchedulerToDelete(null)}
         onConfirm={handleDelete}
         schedulerName={schedulerToDelete?.name || ''}

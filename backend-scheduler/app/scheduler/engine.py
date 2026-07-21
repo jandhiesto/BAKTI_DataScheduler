@@ -26,6 +26,41 @@ def stop_scheduler():
         logger.info("Mesin APScheduler berhasil dimatikan secara aman.")
 
 
+def _create_cron_trigger(days: list, time_str: str) -> CronTrigger:
+    # time_str e.g. "09:00"
+    if not time_str:
+        hour, minute = 0, 0
+    else:
+        parts = time_str.split(":")
+        hour = int(parts[0]) if len(parts) > 0 else 0
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        
+    day_of_week = ",".join(days) if days else "*"
+    return CronTrigger(day_of_week=day_of_week, hour=hour, minute=minute)
+
+def add_or_update_job(config):
+    if config.status == "dijeda":
+        remove_job(config.id)
+        return
+        
+    try:
+        scheduler.add_job(
+            func=execute_sync_job,
+            trigger=_create_cron_trigger(config.days, config.time),
+            id=f"sync_job_{config.id}",
+            args=[config.id],
+            replace_existing=True
+        )
+        logger.info(f"Berhasil mendaftarkan jadwal otomatis: {config.name} [{config.days} pada {config.time}]")
+    except Exception as e:
+        logger.error(f"Gagal mendaftarkan jadwal {config.name}: {str(e)}")
+
+def remove_job(scheduler_id: int):
+    job_id = f"sync_job_{scheduler_id}"
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+        logger.info(f"Berhasil menghapus jadwal dengan ID: {scheduler_id}")
+
 def load_active_jobs(db):
     """
     Mengambil semua konfigurasi scheduler yang berstatus aktif dari database,
@@ -33,19 +68,7 @@ def load_active_jobs(db):
     """
     from app.models.scheduler_model import SchedulerConfig
     
-    # Ambil hanya scheduler yang is_active == True
-    active_configs = db.query(SchedulerConfig).filter(SchedulerConfig.is_active == True).all()
+    active_configs = db.query(SchedulerConfig).filter(SchedulerConfig.status == "aktif").all()
     
     for config in active_configs:
-        try:
-            # Gunakan add_job untuk mendaftarkan pipeline tugas ke engine
-            scheduler.add_job(
-                func=execute_sync_job,
-                trigger=CronTrigger.from_crontab(config.cron_schedule),
-                id=f"sync_job_{config.id}", # ID unik untuk melacak job di memory
-                args=[config.id],            # Parameter yang dilempar ke fungsi execute_sync_job
-                replace_existing=True        # Timpa jika ada job dengan ID yang sama
-            )
-            logger.info(f"Berhasil mendaftarkan jadwal otomatis: {config.name} [{config.cron_schedule}]")
-        except Exception as e:
-            logger.error(f"Gagal mendaftarkan jadwal {config.name}: {str(e)}")
+        add_or_update_job(config)

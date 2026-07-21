@@ -8,17 +8,25 @@ class ExecutionLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Foreign Key untuk menghubungkan log ini dengan scheduler tertentu
-    scheduler_id = Column(Integer, ForeignKey("schedulers.id", ondelete="CASCADE"), nullable=False)
+    # scheduler_id bersifat nullable karena log manual tidak terkait scheduler
+    scheduler_id = Column(Integer, ForeignKey("schedulers.id", ondelete="SET NULL"), nullable=True)
     
-    # Status eksekusi (contoh: "SUCCESS", "FAILED", "PARTIAL")
+    # Snapshot data saat dieksekusi (untuk log scheduler maupun manual)
+    name = Column(String, nullable=False)
+    source = Column(String, nullable=True)
+    target = Column(String, nullable=False)
+    
+    # "berhasil" atau "gagal"
     status = Column(String(50), nullable=False)
     
-    # Berapa banyak baris data yang berhasil ditarik & didorong
-    records_processed = Column(Integer, default=0)
+    # "Scheduler" atau "Manual"
+    trigger = Column(String(50), nullable=False)
     
-    # Menyimpan pesan error asli dari API kementerian jika terjadi kegagalan 
-    error_message = Column(Text, nullable=True)
+    # Pesan detail
+    message = Column(Text, nullable=True)
+    
+    # Berapa banyak baris data yang berhasil diproses
+    records_processed = Column(Integer, default=0)
     
     # Durasi eksekusi dalam detik
     duration_seconds = Column(Integer, default=0)

@@ -10,18 +10,17 @@ class SchedulerConfig(Base):
     description = Column(String, nullable=True)
     
     # Konfigurasi Endpoint
-    source_url = Column(String, nullable=False)
-    target_url = Column(String, nullable=False)
+    source = Column(String, nullable=False)
+    source_headers = Column(JSON, default=[])
+    target = Column(String, nullable=False)
+    target_headers = Column(JSON, default=[])
     
     # Pengaturan Waktu
-    cron_schedule = Column(String, nullable=False) # Contoh: "0 0 * * *"
-    
-    # Logika Mapping (Tipe datanya JSON agar fleksibel)
-    field_mappings = Column(JSON, default={}) 
-    static_parameters = Column(JSON, default={})
+    days = Column(JSON, default=[]) # e.g. ["mon", "tue"]
+    time = Column(String, nullable=False) # e.g. "09:00"
     
     # Status Scheduler
-    is_active = Column(Boolean, default=True)
+    status = Column(String, default="aktif") # 'aktif' atau 'dijeda'
     
     # Timestamp otomatis
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -19,20 +19,23 @@ def execute_sync_job(scheduler_id: int):
     # Mencari konfigurasi scheduler berdasarkan ID
     config = db.query(SchedulerConfig).filter(SchedulerConfig.id == scheduler_id).first()
     
-    if not config or not config.is_active:
+    if not config or config.status != "aktif":
         logger.warning(f"Job dibatalkan. Scheduler ID {scheduler_id} tidak ditemukan atau tidak aktif.")
         db.close()
         return
 
     # Inisialisasi variabel untuk log
-    status = "SUCCESS"
+    status = "berhasil"
     error_msg = None
     records_count = 0
 
     try:
         # 1. TARIK DATA DARI SUMBER
         logger.info(f"Memulai tugas sinkronisasi untuk: {config.name}")
-        raw_data = fetch_source_data(url=config.source_url)
+        source_headers_dict = {h["key"]: h["value"] for h in config.source_headers if h.get("key", "").strip()}
+        target_headers_dict = {h["key"]: h["value"] for h in config.target_headers if h.get("key", "").strip()}
+        
+        raw_data = fetch_source_data(url=config.source, headers=source_headers_dict)
         
         # Asumsi: Jika data yang ditarik berbentuk list (array of objects), kita proses satu per satu.
         # Jika bentuknya bukan list, kita bungkus ke dalam list agar mudah dilooping.
@@ -41,21 +44,12 @@ def execute_sync_job(scheduler_id: int):
             
         records_count = len(raw_data)
         
-        # 2. TRANSFORMASI & 3. DORONG DATA KE TUJUAN
-        for record in raw_data:
-            # Membuang parameter berlebih, mapping nama, dan menyisipkan parameter statis
-            mapped_payload = transform_payload(
-                raw_payload=record,
-                field_mappings=config.field_mappings,
-                static_parameters=config.static_parameters
-            )
-            
-            # Mendorong data yang sudah bersih ke kementerian
-            push_destination_data(url=config.target_url, payload=mapped_payload)
+        # 2. DORONG DATA KE TUJUAN (Tanpa Transformasi)
+        push_destination_data(url=config.target, payload=raw_data, headers=target_headers_dict)
 
     except Exception as e:
-        # Menangkap segala jenis error (Jaringan terputus, Timeout, 404, dll)
-        status = "FAILED"
+        # Menangkap segala jenis error
+        status = "gagal"
         error_msg = str(e)
         logger.error(f"Gagal mengeksekusi scheduler {config.name}: {error_msg}")
 
@@ -63,9 +57,13 @@ def execute_sync_job(scheduler_id: int):
         # 4. CATAT LOG RIWAYAT KE DATABASE (Pasti dijalankan baik saat sukses maupun gagal)
         new_log = ExecutionLog(
             scheduler_id=config.id,
+            name=config.name,
+            source=config.source,
+            target=config.target,
             status=status,
-            records_processed=records_count if status == "SUCCESS" else 0,
-            error_message=error_msg
+            trigger="Scheduler",
+            message=error_msg or f"[INFO] Berhasil mensinkronkan {records_count} baris data dari sumber ke target.",
+            records_processed=records_count if status == "berhasil" else 0
         )
         db.add(new_log)
         db.commit()

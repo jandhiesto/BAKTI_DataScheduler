@@ -1,21 +1,78 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Filter, Eye,Search } from 'lucide-react';
 import clsx from 'clsx';
 import FilterDropdown from '../components/FilterDropdown';
 import LogDetailModal from '../components/LogDetailModal';
 
-const dummyLogs = [
-  { id: 101, name: 'Sync Employee Data', source: 'https://api.hr.system/employees', target: 'https://api.bakti.go.id/users', status: 'berhasil', time: 'Senin, 15 Juli 2026 10:00', message: '[INFO] Berhasil mensinkronkan 124 baris data dari HR System ke BAKTI Users.', trigger: 'Scheduler' },
-  { id: 102, name: 'Manual Data Input', source: '', target: 'https://api.bakti.go.id/users', status: 'gagal', time: 'Senin, 15 Juli 2026 09:00', message: '[ERROR] 401 Unauthorized. Gagal mengautentikasi ke API target (https://api.bakti.go.id/users). Token kadaluarsa.', trigger: 'Manual' },
-];
+import type { FilterState } from '../components/FilterDropdown';
 
 export default function LogHistory() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterConfig, setFilterConfig] = useState<FilterState | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<any>(null);
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/logs');
+      const data = await res.json();
+      setLogs(data);
+    } catch (err) {
+      console.error('Failed to fetch logs', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const formatDateTimeId = (dateStr: string) => {
+    // Append 'Z' to ensure it's treated as UTC if the backend sends a naive string
+    const utcDateStr = dateStr.endsWith('Z') ? dateStr : `${dateStr}Z`;
+    const d = new Date(utcDateStr);
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(d);
+  };
   
   const handleOpenDetail = (log: any) => {
-    setSelectedLog(log);
+    setSelectedLog({
+      ...log,
+      time: formatDateTimeId(log.created_at)
+    });
   };
+
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = log.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    let matchesFilter = true;
+    if (filterConfig) {
+      if (filterConfig.statuses.length > 0) {
+        // Map "sukses" from frontend filter to "berhasil" from backend
+        const mappedStatuses = filterConfig.statuses.map(s => s === 'sukses' ? 'berhasil' : s);
+        matchesFilter = matchesFilter && mappedStatuses.includes(log.status);
+      }
+      if (filterConfig.year) {
+        const utcDateStr = log.created_at.endsWith('Z') ? log.created_at : `${log.created_at}Z`;
+        const date = new Date(utcDateStr);
+        matchesFilter = matchesFilter && (date.getFullYear().toString() === filterConfig.year);
+      }
+      if (filterConfig.month) {
+        const utcDateStr = log.created_at.endsWith('Z') ? log.created_at : `${log.created_at}Z`;
+        const date = new Date(utcDateStr);
+        matchesFilter = matchesFilter && ((date.getMonth() + 1).toString() === filterConfig.month);
+      }
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Actions */}
@@ -26,6 +83,8 @@ export default function LogHistory() {
           </div>
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-navy-500 focus:border-navy-500 sm:text-sm"
             placeholder="Cari scheduler..."
           />
@@ -44,7 +103,7 @@ export default function LogHistory() {
               isOpen={isFilterOpen}
               onClose={() => setIsFilterOpen(false)}
               type="log"
-              onApply={(f) => console.log('Apply', f)}
+              onApply={(f) => setFilterConfig(f)}
             />
           </div>
         </div>
@@ -80,10 +139,10 @@ export default function LogHistory() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {dummyLogs.map((log) => (
+              {filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {log.time}
+                    {formatDateTimeId(log.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                     {log.name}

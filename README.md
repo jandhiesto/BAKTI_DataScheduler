@@ -18,3 +18,4 @@ cd frontend
 # 2. Instal semua dependensi Node.js
 npm install
 # 3. Jalankan server development frontend
+npm run dev
