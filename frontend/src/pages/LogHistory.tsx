@@ -60,7 +60,7 @@ export default function LogHistory() {
                   Waktu
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Nama Scheduler
+                  Nama
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Pemicu
