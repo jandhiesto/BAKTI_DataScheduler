@@ -100,7 +100,7 @@ export default function FilterDropdown({ isOpen, onClose, type, onApply }: Filte
               <select
                 value={filters.year}
                 onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                className="w-full text-sm border border-slate-300 rounded-lg py-1.5 px-2 focus:ring-navy-500 focus:border-navy-500"
+                className="w-full text-sm border border-slate-300 rounded-lg py-1.5 px-2 focus:ring-navy-500 focus:border-navy-500 hover:cursor-pointer"
               >
                 <option value="">Semua</option>
                 {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -111,7 +111,7 @@ export default function FilterDropdown({ isOpen, onClose, type, onApply }: Filte
               <select
                 value={filters.month}
                 onChange={(e) => setFilters({ ...filters, month: e.target.value })}
-                className="w-full text-sm border border-slate-300 rounded-lg py-1.5 px-2 focus:ring-navy-500 focus:border-navy-500"
+                className="w-full text-sm border border-slate-300 rounded-lg py-1.5 px-2 focus:ring-navy-500 focus:border-navy-500 hover:cursor-pointer"
               >
                 <option value="">Semua</option>
                 {MONTHS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -156,13 +156,13 @@ export default function FilterDropdown({ isOpen, onClose, type, onApply }: Filte
       <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
         <button
           onClick={onClose}
-          className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-md transition-colors"
+          className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-md transition-colors hover:cursor-pointer"
         >
           Batal
         </button>
         <button
           onClick={handleApply}
-          className="px-3 py-1.5 text-xs font-medium text-white bg-navy-600 hover:bg-navy-700 rounded-md transition-colors"
+          className="px-3 py-1.5 text-xs font-medium text-white bg-navy-600 hover:bg-navy-700 rounded-md transition-colors hover:cursor-pointer"
         >
           Terapkan
         </button>
