@@ -61,10 +61,11 @@ app.add_middleware(
 )
 
 app.include_router(scheduler_router.router)
-from app.routers import api, dummy_router, passive_router
+from app.routers import api, dummy_router, passive_router, dashboard_router
 app.include_router(api.router)
 app.include_router(dummy_router.router)
 app.include_router(passive_router.router)
+app.include_router(dashboard_router.router)
 
 @app.get("/")
 def read_root():
