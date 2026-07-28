@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.scheduler.engine import add_or_update_job, remove_job
 from app.services.sync_engine import execute_sync_job
 from app.core.database import SessionLocal
 from app.models.scheduler_model import SchedulerConfig
@@ -43,8 +44,10 @@ def create_scheduler(scheduler_in: SchedulerCreate, db: Session = Depends(get_db
     db.commit()
     db.refresh(new_scheduler)
     
-    from app.scheduler.engine import add_or_update_job
-    add_or_update_job(new_scheduler)
+    # Daftarkan ke APScheduler menggunakan fungsi bawaan
+    if new_scheduler.status == "aktif":
+        add_or_update_job(new_scheduler)
+        
     return new_scheduler
 
 # 4. UPDATE: Mengedit jadwal sinkronisasi
@@ -61,8 +64,12 @@ def update_scheduler(scheduler_id: int, scheduler_in: SchedulerUpdate, db: Sessi
     db.commit()
     db.refresh(scheduler)
     
-    from app.scheduler.engine import add_or_update_job
-    add_or_update_job(scheduler)
+    # Perbarui jadwal di mesin otomatis, atau hapus jika dijeda
+    if scheduler.status == "aktif":
+        add_or_update_job(scheduler) # Cukup lempar objeknya
+    else:
+        remove_job(scheduler.id)
+        
     return scheduler
 
 # 5. DELETE: Menghapus jadwal
@@ -75,9 +82,10 @@ def delete_scheduler(scheduler_id: int, db: Session = Depends(get_db)):
     db.delete(scheduler)
     db.commit()
     
-    from app.scheduler.engine import remove_job
+    # Cabut jadwal dari mesin otomatis
     remove_job(scheduler_id)
-    return None
+    
+    return
 
 # 6. ACTION: Menjalankan scheduler secara manual (Trigger / Sync Now)
 @router.post("/{scheduler_id}/trigger", status_code=status.HTTP_200_OK)
