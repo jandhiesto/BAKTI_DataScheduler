@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.services.sync_engine import execute_sync_job
 from app.core.database import SessionLocal
 from app.models.scheduler_model import SchedulerConfig
 from app.schemas.scheduler_schema import SchedulerCreate, SchedulerResponse, SchedulerUpdate
@@ -77,3 +78,25 @@ def delete_scheduler(scheduler_id: int, db: Session = Depends(get_db)):
     from app.scheduler.engine import remove_job
     remove_job(scheduler_id)
     return None
+
+# 6. ACTION: Menjalankan scheduler secara manual (Trigger / Sync Now)
+@router.post("/{scheduler_id}/trigger", status_code=status.HTTP_200_OK)
+def trigger_scheduler(
+    scheduler_id: int, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    scheduler = db.query(SchedulerConfig).filter(SchedulerConfig.id == scheduler_id).first()
+    if not scheduler:
+        raise HTTPException(status_code=404, detail="Scheduler tidak ditemukan")
+
+    # if not scheduler.is_active:
+    #     raise HTTPException(status_code=400, detail="Scheduler sedang dalam status non-aktif")
+
+    # Masukkan fungsi kurir data ke dalam antrean background FastAPI
+    background_tasks.add_task(execute_sync_job, scheduler.id)
+
+    return {
+        "status": "success", 
+        "message": f"Proses sinkronisasi untuk '{scheduler.name}' sedang dijalankan di latar belakang."
+    }
