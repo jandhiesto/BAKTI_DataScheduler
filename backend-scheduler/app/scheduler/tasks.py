@@ -92,6 +92,12 @@ def execute_passive_sync_job(scheduler_id: int):
         logger.info(f"Memulai tugas sinkronisasi pasif untuk: {config.app_name}")
         target_headers_dict = {h["key"]: h["value"] for h in config.target_headers if h.get("key", "").strip()}
         
+        if not config.target or not config.target.strip():
+            raise ValueError("URL tujuan kosong.")
+            
+        if not config.payload or len(config.payload) == 0:
+            raise ValueError("Isi data kosong.")
+        
         # Langsung dorong data karena sudah ada di payload
         push_destination_data(url=config.target, payload=config.payload, headers=target_headers_dict)
         
@@ -112,12 +118,14 @@ def execute_passive_sync_job(scheduler_id: int):
         )
         db.add(new_log)
         
-        # Menghapus job pasif setelah berhasil atau gagal? Requirement: "hanya berlaku sekali pengiriman saja" jika "sudah terkirim".
-        # Asumsikan jika gagal, kita tetap hapus (karena payload pasif itu volatile, atau kita pertahankan untuk dicoba lagi?). 
-        # Kita hapus setelah diproses untuk menjaga konsistensi One-time webhook queue.
         from app.scheduler.engine import remove_passive_job
-        db.delete(config)
+        
+        if status == "berhasil":
+            db.delete(config)
+            remove_passive_job(scheduler_id)
+        else:
+            config.status = "menunggu"
+            
         db.commit()
         logger.info(f"Selesai! Status akhir pasif: {status} untuk: {config.app_name}")
         db.close()
-        remove_passive_job(scheduler_id)

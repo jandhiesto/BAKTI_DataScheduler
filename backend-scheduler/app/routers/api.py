@@ -16,11 +16,52 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/logs", response_model=List[LogResponse])
-def get_all_logs(db: Session = Depends(get_db)):
-    # Ambil semua log, urutkan dari yang terbaru
-    logs = db.query(ExecutionLog).order_by(ExecutionLog.created_at.desc()).all()
-    return logs
+from fastapi import Query
+from sqlalchemy import extract
+from math import ceil
+from typing import Optional
+from app.schemas.scheduler_schema import PaginatedLogResponse
+
+@router.get("/logs", response_model=PaginatedLogResponse)
+def get_all_logs(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    statuses: Optional[str] = None,
+    month: Optional[str] = None,
+    year: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(ExecutionLog)
+    
+    if search:
+        # Case insensitive search on name
+        query = query.filter(ExecutionLog.name.ilike(f"%{search}%"))
+        
+    if statuses:
+        status_list = [s.strip().lower() for s in statuses.split(",")]
+        # Map frontend 'sukses' to backend 'berhasil'
+        status_list = ['berhasil' if s == 'sukses' else s for s in status_list]
+        query = query.filter(ExecutionLog.status.in_(status_list))
+        
+    if year:
+        query = query.filter(extract('year', ExecutionLog.created_at) == int(year))
+        
+    if month:
+        query = query.filter(extract('month', ExecutionLog.created_at) == int(month))
+        
+    total = query.count()
+    total_pages = ceil(total / limit) if total > 0 else 1
+    
+    logs = query.order_by(ExecutionLog.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    
+    return {
+        "data": logs,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages
+    }
 
 @router.post("/manual-sync")
 def manual_sync(payload: dict, db: Session = Depends(get_db)):

@@ -191,7 +191,7 @@ export default function PassiveSchedulerDetail({ mode }: { mode: 'edit' | 'view'
   const toggleDay = (dayId: string) => {
     if (isReadOnly) return;
     setSelectedDays(prev => 
-      prev.includes(dayId) ? prev.filter(d => d !== dayId) : [...prev, dayId]
+      prev.includes(dayId) ? [] : [dayId]
     );
   };
 
@@ -247,6 +247,16 @@ export default function PassiveSchedulerDetail({ mode }: { mode: 'edit' | 'view'
   const handleSendNow = async () => {
     if (isReadOnly) return;
     
+    if (!targetUrl.trim()) {
+      alert("Gagal mengirim: URL Tujuan tidak boleh kosong.");
+      return;
+    }
+    
+    if (data.length === 0) {
+      alert("Gagal mengirim: Data tidak boleh kosong.");
+      return;
+    }
+
     // Auto-save first
     const payloadData = buildPayload();
     const requestData = {
@@ -400,22 +410,30 @@ export default function PassiveSchedulerDetail({ mode }: { mode: 'edit' | 'view'
               <div className="flex flex-wrap gap-2">
                 {DAYS_OPTIONS.map((day) => {
                   const isSelected = selectedDays.includes(day.id);
+                  const isDisabled = isReadOnly || (!isSelected && selectedDays.length > 0);
                   return (
-                    <button
+                    <label
                       key={day.id}
-                      type="button"
-                      disabled={isReadOnly}
-                      onClick={() => toggleDay(day.id)}
                       className={clsx(
-                        "px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
                         isSelected 
                           ? "bg-navy-600 text-white border-navy-600" 
                           : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50",
-                        isReadOnly ? "opacity-75 cursor-not-allowed" : "hover:cursor-pointer"
+                        isDisabled ? "opacity-75 cursor-not-allowed" : "hover:cursor-pointer"
                       )}
                     >
+                      <input 
+                        type="checkbox"
+                        disabled={isDisabled}
+                        checked={isSelected}
+                        onChange={() => toggleDay(day.id)}
+                        className={clsx(
+                          "rounded focus:ring-navy-500 border-slate-300",
+                          isSelected ? "text-navy-600" : "text-slate-400"
+                        )}
+                      />
                       {day.label}
-                    </button>
+                    </label>
                   );
                 })}
               </div>

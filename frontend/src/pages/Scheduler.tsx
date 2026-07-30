@@ -144,10 +144,13 @@ export default function Scheduler() {
                   URL Tujuan
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Waktu Dibuat
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th scope="col" className="relative px-6 py-3 ">
-                  <span className="sr-only">Aksi</span>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Aksi
                 </th>
               </tr>
             </thead>
@@ -166,6 +169,9 @@ export default function Scheduler() {
                     <span className="truncate max-w-[200px] block" title={scheduler.target}>
                       {scheduler.target}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    {scheduler.created_at ? new Date(scheduler.created_at.endsWith('Z') ? scheduler.created_at : `${scheduler.created_at}Z`).toLocaleString('id-ID') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={clsx(

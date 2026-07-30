@@ -19,6 +19,13 @@ class LogResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class PaginatedLogResponse(BaseModel):
+    data: List[LogResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
 
 # SCHEMA UNTUK SCHEDULER CONFIGURATION
 

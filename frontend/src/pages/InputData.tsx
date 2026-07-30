@@ -160,6 +160,16 @@ export default function InputData() {
   };
 
   const handleSubmit = async () => {
+    if (!targetUrl.trim()) {
+      alert("Gagal mengirim data: URL Tujuan tidak boleh kosong.");
+      return;
+    }
+    
+    if (data.length === 0) {
+      alert("Gagal mengirim data: Data tidak boleh kosong.");
+      return;
+    }
+
     // Validasi Tipe Data sebelum submit
     for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
       for (let colIndex = 0; colIndex < columns.length; colIndex++) {

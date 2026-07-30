@@ -152,6 +152,11 @@ export default function SchedulerModal({ isOpen, onClose, mode, initialData, onS
   };
 
   const handleSubmit = async () => {
+    if (!formData.name.trim() || !formData.sourceUrl.trim() || !formData.targetUrl.trim() || !formData.time.trim()) {
+      alert("Harap isi Nama Scheduler, URL Sumber, URL Tujuan, dan Jam Eksekusi. Kolom ini tidak boleh kosong.");
+      return;
+    }
+
     try {
       const payload = {
         name: formData.name,

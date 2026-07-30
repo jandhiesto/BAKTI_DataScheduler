@@ -1,12 +1,12 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Database, CalendarClock, History, LogOut } from 'lucide-react';
+import { LayoutDashboard, DatabasePlus, CalendarClock, History, LogOut, CalendarArrowUp } from 'lucide-react';
 import clsx from 'clsx';
 import logoBakti from '../assets/baktilogo.jpg';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Input Data', path: '/input-data', icon: Database },
-  { name: 'Scheduler Aktif', path: '/scheduler', icon: CalendarClock },
+  { name: 'Input Data', path: '/input-data', icon: DatabasePlus },
+  { name: 'Scheduler Aktif', path: '/scheduler', icon: CalendarArrowUp },
   { name: 'Scheduler Pasif', path: '/passive-scheduler', icon: CalendarClock },
   { name: 'Log Riwayat', path: '/log-history', icon: History },
 ];
@@ -63,10 +63,7 @@ export default function MainLayout() {
             {navItems.find((i) => location.pathname.startsWith(i.path))?.name || 'Overview'}
           </h2>
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center text-navy-700 font-bold text-sm">
-              AD
-            </div>
-            <span className="text-sm font-medium text-slate-600 text-white">Admin</span>
+            <span className="text-sm font-medium text-slate-600 text-white">Halo, Admin</span>
           </div>
         </header>
 
