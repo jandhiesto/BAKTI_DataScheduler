@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, DatabasePlus, CalendarClock, History, LogOut, CalendarArrowUp } from 'lucide-react';
+import { LayoutDashboard, DatabasePlus, CalendarClock, History, LogOut, CalendarArrowUp, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import logoBakti from '../assets/baktilogo.jpg';
 
@@ -9,6 +9,7 @@ const navItems = [
   { name: 'Scheduler Aktif', path: '/scheduler', icon: CalendarArrowUp },
   { name: 'Scheduler Pasif', path: '/passive-scheduler', icon: CalendarClock },
   { name: 'Log Riwayat', path: '/log-history', icon: History },
+  { name: 'Laporan', path: '/report', icon: FileText }
 ];
 
 export default function MainLayout() {

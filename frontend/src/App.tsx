@@ -7,6 +7,7 @@ import Scheduler from './pages/Scheduler';
 import LogHistory from './pages/LogHistory';
 import PassiveScheduler from './pages/PassiveScheduler';
 import PassiveSchedulerDetail from './pages/PassiveSchedulerDetail';
+import Report from './pages/Report';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/passive-scheduler/edit/:id" element={<PassiveSchedulerDetail mode="edit" />} />
           <Route path="/passive-scheduler/view/:id" element={<PassiveSchedulerDetail mode="view" />} />
           <Route path="/log-history" element={<LogHistory />} />
+          <Route path="/report" element={<Report />} />
         </Route>
         
         {/* Catch all - redirect to login */}

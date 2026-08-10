@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import report_router
 from app.routers import scheduler_router
 import logging
 
@@ -60,7 +61,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(scheduler_router.router)
+app.include_router(report_router.router)
 from app.routers import api, dummy_router, passive_router, dashboard_router
 app.include_router(api.router)
 app.include_router(dummy_router.router)

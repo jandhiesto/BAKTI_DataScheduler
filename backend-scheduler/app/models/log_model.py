@@ -25,6 +25,14 @@ class ExecutionLog(Base):
     # Pesan detail
     message = Column(Text, nullable=True)
     
+    payload_sample = Column(Text, nullable=True) 
+    
+    records_processed = Column(Integer, default=0)
+    duration_seconds = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    scheduler = relationship("SchedulerConfig", backref="logs")
+    
     # Berapa banyak baris data yang berhasil diproses
     records_processed = Column(Integer, default=0)
     
