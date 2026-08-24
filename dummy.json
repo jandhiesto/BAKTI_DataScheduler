@@ -1,0 +1,14 @@
+
+{
+  "id": "DUMMY-001",
+  "name": "Data Dummy",
+  "status": "success",
+  "message": "Test webhook dari Aplikasi A",
+  "timestamp": "2026-08-20T11:08:00+07:00",
+  "source": "Aplikasi A",
+  "user_id": 12345,
+  "transaction_id": "TRX-DUMMY-001",
+  "amount": 150000,
+  "currency": "IDR"
+}
+
