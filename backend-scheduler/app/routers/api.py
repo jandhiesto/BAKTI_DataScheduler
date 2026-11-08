@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import extract
+from math import ceil
+from typing import Optional
+import json
+import time
+import httpx
 
 from app.core.database import SessionLocal
 from app.models.log_model import ExecutionLog
-from app.schemas.scheduler_schema import LogResponse
+from app.schemas.scheduler_schema import PaginatedLogResponse
 from app.services.api_client import push_destination_data
 
 router = APIRouter(prefix="/api")
@@ -15,12 +20,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-from fastapi import Query
-from sqlalchemy import extract
-from math import ceil
-from typing import Optional
-from app.schemas.scheduler_schema import PaginatedLogResponse
 
 @router.get("/logs", response_model=PaginatedLogResponse)
 def get_all_logs(
@@ -66,16 +65,21 @@ def get_all_logs(
 @router.post("/manual-sync")
 def manual_sync(payload: dict, db: Session = Depends(get_db)):
     # Payload dari frontend InputData.tsx: { targetUrl: string, headers: [{key, value}], payload: [dict] }
+    start_time = time.time()
     target_url = payload.get("targetUrl", "")
     headers_list = payload.get("headers", [])
     data_payload = payload.get("payload", [])
     
+    if isinstance(data_payload, dict):
+        data_payload = [data_payload]
+    
     # Format headers to dict
-    headers_dict = {h["key"]: h["value"] for h in headers_list if h["key"].strip()}
+    headers_dict = {h["key"]: h["value"] for h in (headers_list or []) if isinstance(h, dict) and h.get("key", "").strip()}
     
     status = "berhasil"
     error_msg = None
-    records_count = len(data_payload)
+    records_count = len(data_payload) if isinstance(data_payload, list) else 0
+    payload_sample_str = json.dumps(data_payload[:3], ensure_ascii=False) if data_payload else None
     
     try:
         push_destination_data(url=target_url, payload=data_payload, headers=headers_dict)
@@ -83,6 +87,8 @@ def manual_sync(payload: dict, db: Session = Depends(get_db)):
         status = "gagal"
         error_msg = str(e)
         
+    duration = int(time.time() - start_time)
+    
     # Catat ke log
     new_log = ExecutionLog(
         name="Manual Data Input",
@@ -91,25 +97,23 @@ def manual_sync(payload: dict, db: Session = Depends(get_db)):
         status=status,
         trigger="Manual",
         message=error_msg or f"[INFO] Berhasil mensinkronkan {records_count} baris data secara manual.",
-        records_processed=records_count if status == "berhasil" else 0
+        payload_sample=payload_sample_str,
+        records_processed=records_count if status == "berhasil" else 0,
+        duration_seconds=duration
     )
     db.add(new_log)
     db.commit()
     
     if status == "gagal":
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=error_msg)
         
     return {"message": "Data berhasil dikirim"}
 
 @router.post("/test-connection")
 def test_connection(payload: dict):
-    import httpx
-    from fastapi import HTTPException
-    
     url = payload.get("url")
     headers_list = payload.get("headers", [])
-    headers_dict = {h["key"]: h["value"] for h in headers_list if h.get("key", "").strip()}
+    headers_dict = {h["key"]: h["value"] for h in (headers_list or []) if isinstance(h, dict) and h.get("key", "").strip()}
     
     if not url:
         raise HTTPException(status_code=400, detail="URL tidak boleh kosong")
