@@ -12,6 +12,7 @@ class LogResponse(BaseModel):
     status: str
     trigger: str
     message: Optional[str] = None
+    payload_sample: Optional[str] = None
     records_processed: int
     duration_seconds: int
     created_at: datetime

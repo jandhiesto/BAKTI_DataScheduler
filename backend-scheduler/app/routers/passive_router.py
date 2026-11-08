@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
+import json
+import time
 from app.core.database import get_db
 from app.models.passive_model import PassiveScheduler
 from app.models.log_model import ExecutionLog
 from app.schemas.passive_schema import PassiveSchedulerResponse, PassiveSchedulerUpdate
 from app.scheduler.tasks import push_destination_data
 from app.scheduler.engine import add_or_update_passive_job, remove_passive_job
-import traceback
 
 router = APIRouter(prefix="/api/passive-schedulers", tags=["Passive Schedulers"])
 
@@ -98,6 +99,7 @@ def delete_passive_scheduler(scheduler_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{scheduler_id}/send-now")
 def send_now(scheduler_id: int, db: Session = Depends(get_db)):
+    start_time = time.time()
     scheduler = db.query(PassiveScheduler).filter(PassiveScheduler.id == scheduler_id).first()
     if not scheduler:
         raise HTTPException(status_code=404, detail="Passive scheduler not found")
@@ -106,10 +108,13 @@ def send_now(scheduler_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="URL Tujuan belum diatur")
 
     # Format headers
-    headers_dict = {h["key"]: h["value"] for h in scheduler.target_headers if h.get("key", "").strip()}
+    headers_dict = {h["key"]: h["value"] for h in (scheduler.target_headers or []) if isinstance(h, dict) and h.get("key", "").strip()}
+    payload_list = scheduler.payload if isinstance(scheduler.payload, list) else ([scheduler.payload] if scheduler.payload else [])
+    payload_sample_str = json.dumps(payload_list[:3], ensure_ascii=False) if payload_list else None
 
     try:
         push_destination_data(url=scheduler.target, payload=scheduler.payload, headers=headers_dict)
+        duration = int(time.time() - start_time)
         
         # Sukses, catat ke log
         log = ExecutionLog(
@@ -118,8 +123,10 @@ def send_now(scheduler_id: int, db: Session = Depends(get_db)):
             target=scheduler.target,
             status="berhasil",
             trigger="Scheduler Pasif",
-            message=f"[INFO] Berhasil mengirim {len(scheduler.payload)} data yang diterima ke target.",
-            records_processed=len(scheduler.payload)
+            message=f"[INFO] Berhasil mengirim {len(payload_list)} data yang diterima ke target.",
+            payload_sample=payload_sample_str,
+            records_processed=len(payload_list),
+            duration_seconds=duration
         )
         db.add(log)
         
@@ -131,6 +138,7 @@ def send_now(scheduler_id: int, db: Session = Depends(get_db)):
         return {"message": "Berhasil dikirim"}
         
     except Exception as e:
+        duration = int(time.time() - start_time)
         log = ExecutionLog(
             name=scheduler.app_name,
             source=scheduler.source_url,
@@ -138,7 +146,9 @@ def send_now(scheduler_id: int, db: Session = Depends(get_db)):
             status="gagal",
             trigger="Scheduler Pasif",
             message=str(e),
-            records_processed=0
+            payload_sample=payload_sample_str,
+            records_processed=0,
+            duration_seconds=duration
         )
         db.add(log)
         db.commit()

@@ -19,19 +19,14 @@ class ExecutionLog(Base):
     # "berhasil" atau "gagal"
     status = Column(String(50), nullable=False)
     
-    # "Scheduler" atau "Manual"
+    # "Scheduler", "Scheduler Pasif", atau "Manual"
     trigger = Column(String(50), nullable=False)
     
     # Pesan detail
     message = Column(Text, nullable=True)
     
-    payload_sample = Column(Text, nullable=True) 
-    
-    records_processed = Column(Integer, default=0)
-    duration_seconds = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    scheduler = relationship("SchedulerConfig", backref="logs")
+    # Sampel payload JSON (maks 3 baris) untuk ditampilkan pada laporan PDF
+    payload_sample = Column(Text, nullable=True)
     
     # Berapa banyak baris data yang berhasil diproses
     records_processed = Column(Integer, default=0)
